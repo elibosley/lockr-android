@@ -15,7 +15,6 @@ import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.SetOptions
 import java.util.*
 
-
 class MainActivity : AppCompatActivity() {
     lateinit var db: FirebaseFirestore
     lateinit var auth: FirebaseAuth
@@ -29,23 +28,30 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        connectToFirebase()
         switch = findViewById(R.id.lock_switch)
-
-        connectToFirebase();
-        Log.d("Lock Status", "test")
+        switch.setOnCheckedChangeListener { _, isChecked ->
+            if (isChecked) {
+                changeFirebaseVal("locked")
+            } else {
+                changeFirebaseVal("unlocked")
+            }
+        }
     }
 
     private fun connectToFirebase() {
         db = FirebaseFirestore.getInstance()
         auth = FirebaseAuth.getInstance()
+
         auth.addAuthStateListener {
-            authStateChanged()
+            authStateChanged(auth, db)
         }
-        db.collection("locks").document("1").addSnapshotListener { snapshot, firebaseFirestoreException ->
-            if (firebaseFirestoreException != null) {
-                throw FirebaseFirestoreException("Firebase Error", firebaseFirestoreException.code)
+        db.collection("locks").document("1").addSnapshotListener { snapshot, exception ->
+            if (exception != null) {
+                throw FirebaseFirestoreException("Firebase Error", exception.code)
             }
             if (snapshot != null && snapshot.exists()) {
+                enableSwitch()
                 val status = snapshot.data!!["lock_status"].toString()
                 findViewById<TextView>(R.id.lock_status).text = status
 
@@ -63,21 +69,29 @@ class MainActivity : AppCompatActivity() {
         connectToFirebase()
     }
 
-    fun authStateChanged() {
-        if (auth.currentUser != null) { // Logged In
-            findViewById<Button>(R.id.login).text = "Log Out"
-            switch.isEnabled = true
-        } else {
-            findViewById<Button>(R.id.login).text = "Log In"
-            switch.isEnabled = false
-        }
+    private fun enableSwitch() {
+        switch.isEnabled = true
     }
 
-    fun switchToggled(view: View) {
-        if (switch.isChecked) {
-            changeFirebaseVal("locked")
+    private fun disableSwitch() {
+        switch.isEnabled = false
+    }
+
+    private fun authStateChanged(auth: FirebaseAuth, db: FirebaseFirestore) {
+        if (auth.currentUser != null) { // Logged In
+            findViewById<Button>(R.id.login).text = getString(R.string.log_out_button_text)
+            db.collection("users").document(auth.currentUser!!.uid).get()
+                    .addOnSuccessListener { result ->
+                        val isAdmin = result["admin"] as Boolean
+                        if (isAdmin) {
+                            enableSwitch()
+                        } else {
+                            disableSwitch()
+                        }
+                    }
         } else {
-            changeFirebaseVal("unlocked")
+            findViewById<Button>(R.id.login).text = getText(R.string.log_in_button_text)
+            disableSwitch()
         }
     }
 
@@ -119,5 +133,9 @@ class MainActivity : AppCompatActivity() {
                     RC_SIGN_IN)
         }
     }
+}
+
+private fun Switch.setOnCheckedChangeListener() {
+
 }
 

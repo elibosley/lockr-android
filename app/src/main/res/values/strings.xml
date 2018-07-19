@@ -1,3 +1,7 @@
 <resources>
     <string name="app_name">Lockr</string>
+    <string name="lock_status_sample">unlocked</string>
+    <string name="lock_status_title">Lock Status:</string>
+    <string name="log_in_button_text">Log In</string>
+    <string name="log_out_button_text">Log Out</string>
 </resources>
