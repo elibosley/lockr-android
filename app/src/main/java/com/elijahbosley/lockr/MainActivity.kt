@@ -6,7 +6,6 @@ import android.support.v7.app.AppCompatActivity
 import android.util.Log
 import android.view.View
 import android.widget.Button
-import android.widget.Switch
 import android.widget.TextView
 import com.firebase.ui.auth.AuthUI
 import com.google.firebase.auth.FirebaseAuth
@@ -18,25 +17,22 @@ import java.util.*
 class MainActivity : AppCompatActivity() {
     lateinit var db: FirebaseFirestore
     lateinit var auth: FirebaseAuth
+    lateinit var unlockButton: Button
+    lateinit var lockButton: Button
     // Firebase Authentication Providers
     private var providers = Arrays.asList<AuthUI.IdpConfig>(
             AuthUI.IdpConfig.EmailBuilder().build())
     private var RC_SIGN_IN = 123
-    private lateinit var switch: Switch
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-
+        unlockButton = findViewById(R.id.unlock_button)
+        lockButton = findViewById(R.id.lock_button)
+        lockButton.setOnClickListener { changeFirebaseVal("locked") }
+        unlockButton.setOnClickListener { changeFirebaseVal("unlocked") }
+        disableButtons()
         connectToFirebase()
-        switch = findViewById(R.id.lock_switch)
-        switch.setOnCheckedChangeListener { _, isChecked ->
-            if (isChecked) {
-                changeFirebaseVal("locked")
-            } else {
-                changeFirebaseVal("unlocked")
-            }
-        }
     }
 
     private fun connectToFirebase() {
@@ -51,11 +47,9 @@ class MainActivity : AppCompatActivity() {
                 throw FirebaseFirestoreException("Firebase Error", exception.code)
             }
             if (snapshot != null && snapshot.exists()) {
-                enableSwitch()
                 val status = snapshot.data!!["lock_status"].toString()
                 findViewById<TextView>(R.id.lock_status).text = status
 
-                setSwitch(status)
                 Log.d("TEST", "Current data: $status")
             } else {
                 Log.d("TEST", "Current data: null")
@@ -69,12 +63,14 @@ class MainActivity : AppCompatActivity() {
         connectToFirebase()
     }
 
-    private fun enableSwitch() {
-        switch.isEnabled = true
+    private fun enableButtons() {
+        unlockButton.isEnabled = true
+        lockButton.isEnabled = true
     }
 
-    private fun disableSwitch() {
-        switch.isEnabled = false
+    private fun disableButtons() {
+        unlockButton.isEnabled = false
+        lockButton.isEnabled = false
     }
 
     private fun authStateChanged(auth: FirebaseAuth, db: FirebaseFirestore) {
@@ -84,14 +80,14 @@ class MainActivity : AppCompatActivity() {
                     .addOnSuccessListener { result ->
                         val isAdmin = result["admin"] as Boolean
                         if (isAdmin) {
-                            enableSwitch()
+                            enableButtons()
                         } else {
-                            disableSwitch()
+                            disableButtons()
                         }
                     }
         } else {
             findViewById<Button>(R.id.login).text = getText(R.string.log_in_button_text)
-            disableSwitch()
+            disableButtons()
         }
     }
 
@@ -103,14 +99,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun setSwitch(lockstatus: String) {
-        if (lockstatus == "locked") {
-            switch.isChecked = true
-        } else if (lockstatus == "unlocked") {
-            switch.isChecked = false
-        }
-    }
-
     fun firebaseLogin(view: View) {
         if (FirebaseAuth.getInstance().currentUser != null) {
             //TODO launch user management page here
@@ -119,7 +107,7 @@ class MainActivity : AppCompatActivity() {
             alertDialog.setMessage("Are you sure you wish to log out")
             alertDialog.setButton(AlertDialog.BUTTON_NEGATIVE, "CANCEL") { dialog, which -> dialog.dismiss() }
             alertDialog.setButton(AlertDialog.BUTTON_POSITIVE, "LOG OUT"
-            ) { dialog, which ->
+            ) { dialog, _ ->
                 FirebaseAuth.getInstance().signOut()
                 dialog.dismiss()
             }
@@ -133,9 +121,5 @@ class MainActivity : AppCompatActivity() {
                     RC_SIGN_IN)
         }
     }
-}
-
-private fun Switch.setOnCheckedChangeListener() {
-
 }
 
