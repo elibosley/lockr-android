@@ -42,20 +42,7 @@ class MainActivity : AppCompatActivity() {
         auth.addAuthStateListener {
             authStateChanged(auth, db)
         }
-        db.collection("locks").document("1").addSnapshotListener { snapshot, exception ->
-            if (exception != null) {
-                throw FirebaseFirestoreException("Firebase Error", exception.code)
-            }
-            if (snapshot != null && snapshot.exists()) {
-                val status = snapshot.data!!["lock_status"].toString()
-                findViewById<TextView>(R.id.lock_status).text = status
 
-                Log.d("TEST", "Current data: $status")
-            } else {
-                Log.d("TEST", "Current data: null")
-            }
-
-        }
     }
 
     override fun onResume() {
